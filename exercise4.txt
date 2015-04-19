@@ -1,0 +1,9 @@
+--code to creat the backup file:
+
+mysqldump - root -p vtapp > dev/trainings/mysql/vtapp_bk.sql
+
+
+--To restore the file from backup:
+Create database vtapp_backup;
+
+mysql -root  u -root vtapp_backup < dev/trainings/mysql/vtapp_bk.sql

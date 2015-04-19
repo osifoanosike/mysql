@@ -1,4 +1,4 @@
-
+--QUESTION: Create a DB named "vtapp", create a db user named 'vtapp_user' and give him permissions to access vtappDB
 
 
 mysql> CREATE DATABASE IF NOT EXISTS vtapp;

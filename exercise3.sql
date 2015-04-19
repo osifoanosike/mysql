@@ -1,0 +1,169 @@
+
+--Design a table structure for following conditions:A user can write many articles. Each written article will fall under one category. Remember that many articles can be written under same category.The users can be of two types viz. admin or normal. A user can post multiple comments on an article.Now write queries for--
+
+
+
+mysql> Create Table Users ( 
+  id int NOT NULL AUTO_INCREMENT,
+  lastname varchar(50),
+  firstname varchar(50),
+  email varchar(50),
+  PRIMARY KEY(id)
+);
+
+mysql> describe Users;
++-----------+-------------+------+-----+---------+----------------+
+| Field     | Type        | Null | Key | Default | Extra          |
++-----------+-------------+------+-----+---------+----------------+
+| id        | int(11)     | NO   | PRI | NULL    | auto_increment |
+| lastname  | varchar(50) | YES  |     | NULL    |                |
+| firstname | varchar(50) | YES  |     | NULL    |                |
+| email     | varchar(50) | YES  |     | NULL    |                |
+| username  | varchar(50) | YES  |     | NULL    |                |
++-----------+-------------+------+-----+---------+----------------+
+5 rows in set (0.00 sec)
+
+
+
+mysql> create table Categories (
+ id int NOT NULL AUTO_INCREMENT,
+ name varchar(50),
+ PRIMARY KEY(id)
+);
+
+mysql> describe Categories;
++-------+-------------+------+-----+---------+----------------+
+| Field | Type        | Null | Key | Default | Extra          |
++-------+-------------+------+-----+---------+----------------+
+| id    | int(11)     | NO   | PRI | NULL    | auto_increment |
+| name  | varchar(50) | YES  |     | NULL    |                |
++-------+-------------+------+-----+---------+----------------+
+2 rows in set (0.00 sec)
+
+
+
+
+mysql> Create Table Articles ( 
+  id int NOT NULL AUTO_INCREMENT,
+  title varchar(200),
+  text varchar(3000),
+  user_id int NOT NULL,
+  category_id int NOT NULL,
+  PRIMARY KEY(id),
+  FOREIGN KEY(user_id) REFERENCES Users(id) ON DELETE CASCADE,
+  FOREIGN KEY(category_id) REFERENCES Categories(id) ON DELETE CASCADE
+);
+
+mysql> describe Articles;
++-------------+---------------+------+-----+---------+----------------+
+| Field       | Type          | Null | Key | Default | Extra          |
++-------------+---------------+------+-----+---------+----------------+
+| id          | int(11)       | NO   | PRI | NULL    | auto_increment |
+| title       | varchar(200)  | YES  |     | NULL    |                |
+| text        | varchar(3000) | YES  |     | NULL    |                |
+| user_id     | int(11)       | NO   | MUL | NULL    |                |
+| category_id | int(11)       | NO   | MUL | NULL    |                |
++-------------+---------------+------+-----+---------+----------------+
+5 rows in set (0.00 sec)
+
+
+mysql> CREATE TABLE Comments (
+  id int NOT NULL AUTO_INCREMENT,
+  content varchar,
+  user_id int NOT NULL,
+  article_id int NOT NULL,
+  PRIMARY KEY(id),
+  FOREIGN KEY(article_id) REFERENCES Articles(id) ON DELETE CASCADE,
+  FOREIGN KEY(user_id) REFERENCES Users(id) ON DELETE CASCADE
+);
+
+mysql> describe Comments;
++------------+---------------+------+-----+---------+----------------+
+| Field      | Type          | Null | Key | Default | Extra          |
++------------+---------------+------+-----+---------+----------------+
+| id         | int(11)       | NO   | PRI | NULL    | auto_increment |
+| text       | varchar(2000) | YES  |     | NULL    |                |
+| user_id    | int(11)       | NO   | MUL | NULL    |                |
+| article_id | int(11)       | NO   | MUL | NULL    |                |
++------------+---------------+------+-----+---------+----------------+
+4 rows in set (0.01 sec)
+
+
+
+
+mysql> select @user_id := id from Users where username = "user3";
++----------------+
+| @user_id := id |
++----------------+
+|              3 |
++----------------+
+1 row in set (0.00 sec)
+
+mysql> select * from Articles where user_id = @user_id;
++----+-------------------------------+-----------------------------------------------------------+---------+-------------+
+| id | title                         | text                                                      | user_id | category_id |
++----+-------------------------------+-----------------------------------------------------------+---------+-------------+
+|  3 | How to flash an android phone | You can flash your android phone by following these steps |       3 |           2 |
++----+-------------------------------+-----------------------------------------------------------+---------+-------------+
+1 row in set (0.00 sec)
+
+
+
+
+
+mysql> select ArC.title, ArC.text, C.text as Comment from( 
+  (select title, text, user_id 
+    from Articles A 
+    JOIN Users U ON A.user_id = U.id 
+    WHERE user_id = @user_id
+  ) ArC 
+)
+JOIN Comments C Using(user_id);
+
++-------------------------------+-----------------------------------------------------------+--------------------------+
+| title                         | text                                                      | Comment                  |
++-------------------------------+-----------------------------------------------------------+--------------------------+
+| How to flash an android phone | You can flash your android phone by following these steps | N who said it was copied |
++-------------------------------+-----------------------------------------------------------+--------------------------+
+1 row in set (0.00 sec)
+
+
+
+
+-- QUESTION: Write a query to select all articles which do not have any comments (Do using subquery also) --
+
+mysql> select * from Articles where id not in (select article_id from Comments );
++----+--------------------+-----------------------------------------------------+---------+-------------+
+| id | title              | text                                                | user_id | category_id |
++----+--------------------+-----------------------------------------------------+---------+-------------+
+|  4 | This looks like it | This is a description for a what you're looking for |       2 |           3 |
+|  5 | New article        | Yeah, this is a new article                         |       3 |           2 |
++----+--------------------+-----------------------------------------------------+---------+-------------+
+2 rows in set (0.00 sec)
+
+
+--QUESTION: Write a query to select article which has maximum comments --
+
+mysql> Select A.title, Count(C.article_id) AS CommentCount
+    ->   From Articles A JOIN Comments C ON  A.id = C.article_id   
+    ->   Group By A.id
+    ->   HAVING CommentCount  > 
+    ->   ( SELECT Max(A_CommentCount) 
+    ->     FROM 
+    ->     ( Select Count(C.article_id) as A_CommentCount
+    ->       From Articles A JOIN Comments C ON  A.id = C.article_id 
+    ->       GROUP BY A.iD 
+    ->       ORDER BY A_CommentCount
+    ->       LIMIT 1
+    ->     ) A_With_CommentCount
+    ->   );
++-----------------------+--------------+
+| title                 | CommentCount |
++-----------------------+--------------+
+| Test Article          |            2 |
+| Article on Submission |            2 |
++-----------------------+--------------+
+2 rows in set (0.00 sec)
+
+
+
