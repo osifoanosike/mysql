@@ -1,0 +1,112 @@
+--6a: 
+
+mysql> create database CampaignDB;
+Query OK, 1 row affected (0.07 sec)
+
+mysql> CREATE TABLE email_subscribers ( 
+  id INT NOT NULL AUTO_INCREMENT,
+  email varchar(50),
+  city varchar(50),
+  phoneNos varchar(50),
+  PRIMARY KEY(id) 
+);
+
+Query OK, 0 rows affected (0.08 sec)
+
+
+mysql> describe email_subscribers;
++-----------+-------------+------+-----+---------+-------+
+| Field     | Type        | Null | Key | Default | Extra |
++-----------+-------------+------+-----+---------+-------+
+| id        | int(11)     | NO   |     | NULL    |       |
+| email     | varchar(50) | YES  |     | NULL    |       |
+| city      | varchar(50) | YES  |     | NULL    |       |
+| phone_nos | varchar(20) | YES  |     | NULL    |       |
++-----------+-------------+------+-----+---------+-------+
+4 rows in set (0.00 sec)
+
+
+--importing the data into the database
+$ mysqlimport -u root -p --local --fields-terminated-by=, CampaignDB dev/trainings/mysql/email_subscribers.txt
+
+CampaignDB.email_subscribers: Records: 200  Deleted: 0  Skipped: 0  Warnings: 0
+
+
+--6b: What all cities did people respond from--
+
+mysql> select distinct city from email_subscribers;
++-----------+
+| city      |
++-----------+
+|  Lucknow  |
+|  Chennai  |
+|  Kolkatta |
+|  Delhi    |
+|  Mumbai   |
++-----------+
+5 rows in set (0.00 sec)
+
+
+--6c: How many people responded from each city --
+mysql> select City, Count(*) as 'Nos of Respondents' FROM email_subscribers GROUP BY City;
++-----------+--------------------+
+| City      | Nos of Respondents |
++-----------+--------------------+
+|  Chennai  |                 42 |
+|  Delhi    |                 40 |
+|  Kolkatta |                 38 |
+|  Lucknow  |                 39 |
+|  Mumbai   |                 41 |
++-----------+--------------------+
+5 rows in set (0.01 sec)
+
+
+
+--6d Which city were the maximum respondents from? --
+
+mysql> SELECT City, Count(*) as Subscribers
+       FROM email_subscribers
+       Group By City
+       HAVING Subscribers = 
+       ( SELECT Count(*) as SubscriberCount
+         FROM email_subscribers
+         Group By City
+         ORDER BY SubscriberCount DESC
+         LIMIT 1
+       );
+
++----------+-------------+
+| City     | Subscribers |
++----------+-------------+
+|  Chennai |          42 |
++----------+-------------+
+1 row in set (0.00 sec)
+
+
+
+
+--6e: What all email domains did people respond from ?--
+mysql> SELECT DISTINCT SUBSTRING_INDEX(email, '@', -1) FROM email_subscribers;
++---------------------------------+
+| SUBSTRING_INDEX(email, '@', -1) |
++---------------------------------+
+| hotmail.com                     |
+| yahoo.com                       |
+| me.com                          |
+| gmail.com                       |
++---------------------------------+
+4 rows in set (0.00 sec)
+
+
+
+
+--6f Which is the most popular email domain among the respondents ?
+
+mysql> select SUBSTRING_INDEX(email, '@', -1) As Domain, Count(phonenos) As 'Nos of Subscribers' FROM email_subscribers GROUP BY Domain HAVING Count(phonenos) > (SELECT Max(A.SubscriberCount) FROM (SELECT COUNT(Phonenos) AS SubscriberCount FROM email_subscribers GROUP BY SUBSTRING_INDEX(email, '@', -1) ORDER BY SubscriberCount LIMIT 1) A);
++------------+--------------------+
+| Domain     | Nos of Subscribers |
++------------+--------------------+
+| me.com     |                 51 |
+| yahoo.com  |                 51 |
++------------+--------------------+
+2 rows in set (0.00 sec)

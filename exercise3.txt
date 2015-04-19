@@ -144,19 +144,15 @@ mysql> select * from Articles where id not in (select article_id from Comments )
 
 --QUESTION: Write a query to select article which has maximum comments --
 
-mysql> Select A.title, Count(C.article_id) AS CommentCount
-    ->   From Articles A JOIN Comments C ON  A.id = C.article_id   
-    ->   Group By A.id
-    ->   HAVING CommentCount  > 
-    ->   ( SELECT Max(A_CommentCount) 
-    ->     FROM 
-    ->     ( Select Count(C.article_id) as A_CommentCount
-    ->       From Articles A JOIN Comments C ON  A.id = C.article_id 
-    ->       GROUP BY A.iD 
-    ->       ORDER BY A_CommentCount
-    ->       LIMIT 1
-    ->     ) A_With_CommentCount
-    ->   );
+mysql> Select A.title, Count(C.article_id) AS CommentCount 
+        From Articles A JOIN Comments C ON  A.id = C.article_id
+        Group By A.id 
+        HAVING CommentCount = ( 
+            Select Count(C.article_id) as A_CommentCount
+            From Articles A JOIN Comments C ON  A.id = C.article_id
+            GROUP BY A.iD
+            ORDER BY A_CommentCount DESC 
+            LIMIT 1 );
 +-----------------------+--------------+
 | title                 | CommentCount |
 +-----------------------+--------------+
@@ -164,6 +160,3 @@ mysql> Select A.title, Count(C.article_id) AS CommentCount
 | Article on Submission |            2 |
 +-----------------------+--------------+
 2 rows in set (0.00 sec)
-
-
-
