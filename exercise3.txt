@@ -1,8 +1,6 @@
 
 --Design a table structure for following conditions:A user can write many articles. Each written article will fall under one category. Remember that many articles can be written under same category.The users can be of two types viz. admin or normal. A user can post multiple comments on an article.Now write queries for--
 
-
-
 mysql> Create Table Users ( 
   id int NOT NULL AUTO_INCREMENT,
   lastname varchar(50),
@@ -90,6 +88,7 @@ mysql> describe Comments;
 
 
 
+--3b: select all articles whose author's name is user3 (Do this exercise using variable also).--
 
 mysql> select @user_id := id from Users where username = "user3";
 +----------------+
@@ -110,7 +109,7 @@ mysql> select * from Articles where user_id = @user_id;
 
 
 
-
+--3c: For all the articles being selected above, select all the articles and also the comments associated with those articles in a single query (Do this using subquery also)--
 mysql> select ArC.title, ArC.text, C.text as Comment from( 
   (select title, text, user_id 
     from Articles A 
@@ -130,7 +129,7 @@ JOIN Comments C Using(user_id);
 
 
 
--- QUESTION: Write a query to select all articles which do not have any comments (Do using subquery also) --
+--3d. QUESTION: Write a query to select all articles which do not have any comments (Do using subquery also) --
 
 mysql> select * from Articles where id not in (select article_id from Comments );
 +----+--------------------+-----------------------------------------------------+---------+-------------+
@@ -142,7 +141,7 @@ mysql> select * from Articles where id not in (select article_id from Comments )
 2 rows in set (0.00 sec)
 
 
---QUESTION: Write a query to select article which has maximum comments --
+--QUESTION: 3e: Write a query to select article which has maximum comments --
 
 mysql> Select A.title, Count(C.article_id) AS CommentCount 
         From Articles A JOIN Comments C ON  A.id = C.article_id

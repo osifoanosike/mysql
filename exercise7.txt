@@ -1,0 +1,162 @@
+Q1: What do different columns in the output of EXPLAIN mean?
+What possible values can those have? What is the meaning of those values?
+
+
+The various columns in EXPLAIN's output:
+id:
+MEANING: this is a sequential identifier for each select clause in the query 
+
+select_type: 
+MEANING: This indicates the type of SELECT query.
+POSSIBLE VALUES: 
+  -Simple:  this is a simple select query, with no subqueries or unions involved
+  - Primary:  the select is in the outermost query in a JOIN.
+  - Derived:  the select is part of a subquery within a FROM clause
+  - SUBQUERY: its the first select in a subquery
+  - DEPENDENT SUBQUERY: the select subquery dependent on an outer query
+  - UNION: The select statement is the 2nd or later statement of a UNION
+  - DEPENDENT UNION: The second or later SELECT of a UNION is dependent on an outer query.
+  - UNION RESULT: the SELECT is the result of a union.
+
+table: this describes the table referred to by the row. 
+
+type: 
+MEANING: this describes how MySQL joins the tables
+POSSIBLE VALUES: 
+  - const: This means that the table has only one matching row which is indexed. This is the fastest type of JOIN, coz the table only has to be read once, and the column value can be treated as a constant when used to join other tables
+  - ref: here, all of the matching rows of the column are read  for each combination from the previous table. this type of JOIN appears for indexed columns compared using  <=> or = 
+  -eq_ref: This kind of join uses all parts of the index, and the index its the primary key
+  - fulltext: The JOIN uses the table's fulltext index;
+  - ref_or_null: this awarches thru all the matching rows for each combination  from the previous table, however rows with null values are also included in the result
+  - index_merge:  here the join uses a series of indexes to produce the result set.
+  - index: the entire index is scanned for matching rows within a range
+  -all: this means that the entire table is scanned to find matching rows for the join.
+
+posssible_keys: this denotes the possible indexes that can be used by mysql to find matching rows.
+
+key: This indicates the actual index used to locate matching rows in the tables
+
+key_len: this indicates the length of index the query optimizer chose to use. A long length implies that more memory would be needed to hold the values. 
+
+ref: this shows the column-name/constant compared with the [index used as the key].
+
+rows: the indicates the nos of rows searched/examined in order to produce the output 
+
+Extra: This contains extra information about the query execution plan.
+
+
+
+Q2: We use EXPLAIN to optimize slow SQL queries used in our application. 
+Lets say we have a comments table in our application that has a foreign key, user_id, referencing to users table.
+EXPLAINing the query that finds all the comments made by a user gives us following result.
+
+
+mysql> EXPLAIN SELECT * FROM comments WHERE user_id = 41;
++-------------+------+---------------+---------+-------+---------+-------------+| select_type | type | key | key_len | ref | rows | Extra |+-------------+------+---------------+---------+-------+---------+-------------+| SIMPLE | ALL | NULL | NULL | NULL | 1002345 | Using where |+-------------+------+---------------+---------+-------+---------+-------------+
+
+
+mysql> SELECT count(id) FROM comments;
+
++-----------+| count(id) |
++-----------+| 1002345 |
++-----------+
+
+2.1 The value under 'rows' column in the output of EXPLAIN query and SELECT query after it are same. What does it mean?
+
+ANSWER: What this means is that the query optimizer does a full-table scan (i.e all the rows in the table are checked) in order to find a matching row for the query.
+
+2.2 Is the SELECT query optimal? 
+If no, how do we optimize it?
+It is not optmial: I can use create an index on the user_id column for a better optimized query.
+
+
+
+Q3. In Rails world, we have someting called polymorphic associations (http://guides.rubyonrails.org/association_basics.html#polymorphic-associations). 
+Lets say in our web application, we can let users comment on photographs and articles. Some of rows in comments table are represented as following:
+
+mysql> SELECT * FROM comments LIMIT 5;
++----+------------------+----------------+---------+| id | commentable_type | commentable_id | user_id |
++----+------------------+----------------+---------+| 1 + Article | 1 | 1 |
++----+------------------+----------------+---------+| 2 + Photo | 1 | 1 |
++----+------------------+----------------+---------+| 3 + Photo | 2 | 2 |
++----+------------------+----------------+---------+| 4 + Photo | 2 | 2 |
++----+------------------+----------------+---------+| 5 + Article | 1 | 2 |
++----+------------------+----------------+---------+
+When we need to fetch comments of a user on a particular Article or Photo we form a query like:
+
+mysql> EXPLAIN SELECT * FROM comments WHERE commentable_id = 1 AND commentable_type = 'Article' AND user_id = 1;
++-------------+------+---------------+---------+-------+---------+-------------+| select_type | type | key | key_len | ref | rows | Extra |+-------------+------+---------------+---------+-------+---------+-------------+| SIMPLE | ALL | NULL | NULL | NULL | 1000025 | Using where |+-------------+------+---------------+---------+-------+---------+-------------+
+
+It seems that we do not have any index on any of the columns. And whole comments table is scanned to fetch those comments.
+3.1 We decide to index columns in comments table to optimize the SELECT query. 
+What column(s) will you index in which order? Ask the exercise creator for a hint if you are confused.
+
+ANSWER: I'll index the commentable_id, article_type and user_id columns:
+  ALTER TABLE Comments ADD INDEX comment_article_user(commentable_id, article_type, user_id);
+
+
+
+Q4:
+
+4.1 EXPLAIN a SELECT query against one of your databases which employs an INNER JOIN between two tables. What does the output look like? What does the values under different columns mean? Do you get only one row in EXPLAIN's output?
+
+
+mysql> explain select title, text from Articles A JOIN Users U ON A.user_id = U.id  where  username = 'user3';
++----+-------------+-------+------+----------------------+--------------+---------+------------+------+--------------------------+
+| id | select_type | table | type | possible_keys        | key          | key_len | ref        | rows | Extra                    |
++----+-------------+-------+------+----------------------+--------------+---------+------------+------+--------------------------+
+|  1 | SIMPLE      | U     | ref  | PRIMARY,idx_username | idx_username | 53      | const      |    1 | Using where; Using index |
+|  1 | SIMPLE      | A     | ref  | user_id              | user_id      | 4       | vtapp.U.id |    1 |                          |
++----+-------------+-------+------+----------------------+--------------+---------+------------+------+--------------------------+
+2 rows in set (0.00 sec)
+
+
+
+For the first step of the explain query (the first join):
+- For each table in the join statement the select type used is SIMPLE, this means that the individual queries dont have any joins.
+
+- At step 1, the type is ref: this is because there are more than one matching rows for the indexed column.
+
+- The table is the Users, the likely keys are the primary key and the username index. The index is then chosen as the key.
+
+- the key length is 53: this implies that more memeory would be needed to hold the keys.
+- The ref column has a value of:  const. This means the index is being compared against a const.
+- The extra column indicates that theoptimizer is making use of where filter and index 
+
+On the second step of the JOIN, 
+- the type is ref: this is because there are more than one matching rows for the indexed column.
+- the possible keys column contains: user_id, this implies that its the indexed column that's suitable for use as as key. It is infact used as the key
+- The ref column has a value of:  vtapp.u.id. This means the index is being compared against a the id column of the users table.
+With the both row counts of 1, i'll say the query is quite optimized.
+
+
+
+
+
+
+4.2 Form the same select query in above question using a subquery instead of a JOIN. What does the EXPLAIN output look like now? Which query is better and why?
+
+mysql> explain select title, text from Articles A where A.user_id IN (select id from Users where  username = 'user3');
++----+--------------------+-------+-----------------+----------------------+---------+---------+------+------+-------------+
+| id | select_type        | table | type            | possible_keys        | key     | key_len | ref  | rows | Extra       |
++----+--------------------+-------+-----------------+----------------------+---------+---------+------+------+-------------+
+|  1 | PRIMARY            | A     | ALL             | NULL                 | NULL    | NULL    | NULL |    5 | Using where |
+|  2 | DEPENDENT SUBQUERY | Users | unique_subquery | PRIMARY,idx_username | PRIMARY | 4       | func |    1 | Using where |
++----+--------------------+-------+-----------------+----------------------+---------+---------+------+------+-------------+
+2 rows in set (0.00 sec)
+
+For step 1: 
+- The first table has a select_type of primary:  this implies that its the outermost query in a join. what this indicates is that the Query optimizer executed the subquery using a JOIN clause
+- The Table is named after the alias: Article A as specified in the query.
+- The Join Type has a value of ALL, this means that the whole table would be scanned to find matching results.
+- There's no suitable key for the first outermost table. i,e the article table, thus no key is used.
+
+At the second step of the query,
+- The table has a select_type of Dependent Subquerym this implies that its the second/later table in a join statment, and is dependent on an outer query.
+-the table name is that of the Users table 
+- The indexes that are suitable for use as key for the query are the Primary index and the username_index. the username index is chosen as key.
+- The key has a length of 4, thus more  memory would be needed.
+- The ref column has value: means that the value of the column used for comparison with the key is being calculated on the fly
+- Only one row(the natching row) is scanned.
+
+
