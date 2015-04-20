@@ -134,7 +134,9 @@ With the both row counts of 1, i'll say the query is quite optimized.
 
 
 
-4.2 Form the same select query in above question using a subquery instead of a JOIN. What does the EXPLAIN output look like now? Which query is better and why?
+4.2 Form the same select query in above question using a subquery instead of a JOIN. 
+
+What does the EXPLAIN output look like now? Which query is better and why?
 
 mysql> explain select title, text from Articles A where A.user_id IN (select id from Users where  username = 'user3');
 +----+--------------------+-------+-----------------+----------------------+---------+---------+------+------+-------------+
@@ -159,4 +161,6 @@ At the second step of the query,
 - The ref column has value: means that the value of the column used for comparison with the key is being calculated on the fly
 - Only one row(the natching row) is scanned.
 
+
+The query with the JOIN is better because its more optimized i scans through much less table rows.
 
