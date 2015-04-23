@@ -164,15 +164,19 @@ mysql> Select A.title, Count(C.article_id) AS CommentCount
 
 
 
---QUESTION 3f Write a query to select article which does not have more than one comment by the same user ( do this using left join and group by )
-mysql> select A.title, A.text 
-        from Articles A LEFT JOIN Comments C ON A.id = C.user_id 
-        GROUP BY A.id 
-        HAVING COUNT(C.user_id) = 1;
+--QUESTION 3f. Write a query to select article which does not have more than one comment by the same user ( do this using left join and group by )
 
-+--------------+------------------------------------------+
-| title        | text                                     |
-+--------------+------------------------------------------+
-| Test Article | This is a description for a test article |
-+--------------+------------------------------------------+
-1 row in set (0.00 sec)
+mysql> select A.title, A.text 
+       from Articles A LEFT JOIN Comments C ON A.id = C.user_id 
+       GROUP BY A.id 
+       HAVING COUNT(C.user_id) <= 1;
++--------------------+-----------------------------------------------------+
+| title              | text                                                |
++--------------------+-----------------------------------------------------+
+| Test Article       | This is a description for a test article            |
+| This looks like it | This is a description for a what you're looking for |
+| New article        | Yeah, this is a new article                         |
++--------------------+-----------------------------------------------------+
+3 rows in set (0.00 sec)
+
+
